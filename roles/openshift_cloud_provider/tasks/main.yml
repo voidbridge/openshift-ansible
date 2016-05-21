@@ -8,6 +8,7 @@
     openshift_env_structures:
     - 'openshift.cloudprovider.aws.*'
     - 'openshift.cloudprovider.openstack.*'
+    - 'openshift.cloudprovider.gce.*'
 
 - name: Create cloudprovider config dir
   file:
