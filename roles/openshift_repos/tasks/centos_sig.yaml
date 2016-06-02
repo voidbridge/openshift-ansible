@@ -4,3 +4,8 @@
   with_items:
   - centos-release-paas-common
   - centos-release-openshift-origin
+- name: Enable CentOS PaaS SIG test repository
+  ini_file: dest=/etc/yum.repos.d/CentOS-OpenShift-Origin.repo 
+            section=centos-openshift-origin-testing
+            option=enabled
+            value=1
