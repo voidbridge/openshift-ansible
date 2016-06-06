@@ -22,6 +22,7 @@
       extension_scripts: "{{ openshift_master_extension_scripts | default(None) }}"
       extension_stylesheets: "{{ openshift_master_extension_stylesheets | default(None) }}"
       extensions: "{{ openshift_master_extensions | default(None) }}"
+      external_ip_network_cidr: "{{ openshift_master_external_ip_network_cidr | default(None) }}"
       etcd_hosts: "{{ openshift_master_etcd_hosts | default(None) }}"
       etcd_port: "{{ openshift_master_etcd_port | default(None) }}"
       etcd_use_ssl: "{{ openshift_master_etcd_use_ssl | default(None) }}"
