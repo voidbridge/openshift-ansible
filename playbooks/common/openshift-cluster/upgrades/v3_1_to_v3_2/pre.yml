@@ -8,6 +8,18 @@
   - openshift_facts
   - openshift_repos
 
+- name: Set openshift_no_proxy_internal_hostnames
+  hosts: oo_masters_to_config:oo_nodes_to_config
+  tasks:
+  - set_fact:
+      openshift_no_proxy_internal_hostnames: "{{ hostvars | oo_select_keys(groups['oo_nodes_to_config']
+                                                    | union(groups['oo_masters_to_config'])
+                                                    | union(groups['oo_etcd_to_config'] | default([])))
+                                                | oo_collect('openshift.common.hostname') | default([]) | join (',')
+                                                }}"
+    when: "{{ (openshift_http_proxy is defined or openshift_https_proxy is defined) and
+            openshift_generate_no_proxy_hosts | default(True) | bool }}"
+
 - name: Evaluate additional groups for upgrade
   hosts: localhost
   connection: local
@@ -53,7 +65,7 @@
         valid version for a {{ target_version }} upgrade
     when: openshift_image_tag is defined and openshift_image_tag.split('v',1).1 | version_compare(target_version ,'<')
 
-- name: Verify upgrade can proceed
+- name: Verify master processes
   hosts: oo_masters_to_config
   roles:
   - openshift_facts
@@ -84,7 +96,7 @@
       enabled: yes
     when: openshift.master.ha is defined and openshift.master.ha | bool and openshift.common.is_containerized | bool
 
-- name: Verify upgrade can proceed
+- name: Verify node processes
   hosts: oo_nodes_to_config
   roles:
   - openshift_facts
@@ -96,7 +108,7 @@
       enabled: yes
     when: openshift.common.is_containerized | bool
 
-- name: Verify upgrade can proceed
+- name: Verify upgrade targets
   hosts: oo_masters_to_config:oo_nodes_to_config
   vars:
     target_version: "{{ '1.2' if deployment_type == 'origin' else '3.1.1.900' }}"
@@ -200,6 +212,9 @@
       msg: Upgrade packages not found
     when: openshift_image_tag is not defined and (g_aos_versions.avail_version | default(g_aos_versions.curr_version, true) | version_compare(target_version, '<'))
 
+- name: Verify docker upgrade targets
+  hosts: oo_masters_to_config:oo_nodes_to_config:oo_etcd_to_config
+  tasks:
   - name: Determine available Docker
     script: ../files/rpm_versions.sh docker
     register: g_docker_version_result
@@ -254,7 +269,7 @@
 - name: Backup etcd
   hosts: etcd_hosts_to_backup
   vars:
-    embedded_etcd: "{{ openshift.master.embedded_etcd }}"
+    embedded_etcd: "{{ hostvars[groups.oo_first_master.0].openshift.master.embedded_etcd }}"
     timestamp: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
   roles:
   - openshift_facts

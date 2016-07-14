@@ -6,7 +6,7 @@
 # This script should be run from openshift-ansible/roles/openshift_examples
 
 XPAAS_VERSION=ose-v1.3.1
-ORIGIN_VERSION=${1:-v1.2}
+ORIGIN_VERSION=${1:-v1.3}
 EXAMPLES_BASE=$(pwd)/files/examples/${ORIGIN_VERSION}
 find ${EXAMPLES_BASE} -name '*.json' -delete
 find ${EXAMPLES_BASE} -name '*.yaml' -delete
@@ -41,7 +41,7 @@ wget https://raw.githubusercontent.com/jboss-fuse/application-templates/master/f
 
 wget https://raw.githubusercontent.com/openshift/origin-metrics/master/metrics.yaml                            -O ${EXAMPLES_BASE}/infrastructure-templates/origin/metrics-deployer.yaml
 wget https://raw.githubusercontent.com/openshift/origin-metrics/enterprise/metrics.yaml                        -O ${EXAMPLES_BASE}/infrastructure-templates/enterprise/metrics-deployer.yaml
-wget https://raw.githubusercontent.com/openshift/origin-aggregated-logging/master/deployment/deployer.yaml     -O ${EXAMPLES_BASE}/infrastructure-templates/origin/logging-deployer.yaml
+wget https://raw.githubusercontent.com/openshift/origin-aggregated-logging/master/deployer/deployer.yaml     -O ${EXAMPLES_BASE}/infrastructure-templates/origin/logging-deployer.yaml
 wget https://raw.githubusercontent.com/openshift/origin-aggregated-logging/enterprise/deployment/deployer.yaml -O ${EXAMPLES_BASE}/infrastructure-templates/enterprise/logging-deployer.yaml
 
 popd

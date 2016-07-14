@@ -12,4 +12,3 @@
 - name: Restart Docker
   command: systemctl restart docker
   when: docker_upgrade | changed
-

@@ -114,6 +114,12 @@ def migrate_hosted_facts(facts):
             if 'router' not in facts['hosted']:
                 facts['hosted']['router'] = {}
             facts['hosted']['router']['selector'] = facts['master'].pop('router_selector')
+        if 'registry_selector' in facts['master']:
+            if 'hosted' not in facts:
+                facts['hosted'] = {}
+            if 'registry' not in facts['hosted']:
+                facts['hosted']['registry'] = {}
+            facts['hosted']['registry']['selector'] = facts['master'].pop('registry_selector')
     return facts
 
 def first_ip(network):
@@ -466,11 +472,11 @@ def set_selectors(facts):
         facts['hosted']['router'] = {}
     if 'selector' not in facts['hosted']['router'] or facts['hosted']['router']['selector'] in [None, 'None']:
         facts['hosted']['router']['selector'] = selector
+    if 'registry' not in facts['hosted']:
+        facts['hosted']['registry'] = {}
+    if 'selector' not in facts['hosted']['registry'] or facts['hosted']['registry']['selector'] in [None, 'None']:
+        facts['hosted']['registry']['selector'] = selector
 
-    if 'master' in facts:
-        if 'infra_nodes' in facts['master']:
-            if 'registry_selector' not in facts['master']:
-                facts['master']['registry_selector'] = selector
     return facts
 
 def set_metrics_facts_if_unset(facts):
@@ -832,19 +838,26 @@ def set_version_facts_if_unset(facts):
                 version_gte_3_1_or_1_1 = LooseVersion(version) >= LooseVersion('1.1.0')
                 version_gte_3_1_1_or_1_1_1 = LooseVersion(version) >= LooseVersion('1.1.1')
                 version_gte_3_2_or_1_2 = LooseVersion(version) >= LooseVersion('1.2.0')
+                version_gte_3_3_or_1_3 = LooseVersion(version) >= LooseVersion('1.3.0')
             else:
                 version_gte_3_1_or_1_1 = LooseVersion(version) >= LooseVersion('3.0.2.905')
                 version_gte_3_1_1_or_1_1_1 = LooseVersion(version) >= LooseVersion('3.1.1')
                 version_gte_3_2_or_1_2 = LooseVersion(version) >= LooseVersion('3.1.1.901')
+                version_gte_3_3_or_1_3 = LooseVersion(version) >= LooseVersion('3.3.0')
         else:
             version_gte_3_1_or_1_1 = True
             version_gte_3_1_1_or_1_1_1 = True
             version_gte_3_2_or_1_2 = True
+            version_gte_3_3_or_1_3 = False
         facts['common']['version_gte_3_1_or_1_1'] = version_gte_3_1_or_1_1
         facts['common']['version_gte_3_1_1_or_1_1_1'] = version_gte_3_1_1_or_1_1_1
         facts['common']['version_gte_3_2_or_1_2'] = version_gte_3_2_or_1_2
+        facts['common']['version_gte_3_3_or_1_3'] = version_gte_3_3_or_1_3
 
-        if version_gte_3_2_or_1_2:
+
+        if version_gte_3_3_or_1_3:
+            examples_content_version = 'v1.3'
+        elif version_gte_3_2_or_1_2:
             examples_content_version = 'v1.2'
         elif version_gte_3_1_or_1_1:
             examples_content_version = 'v1.1'
@@ -1566,7 +1579,7 @@ class OpenShiftFacts(object):
                    'node']
 
     # Disabling too-many-arguments, this should be cleaned up as a TODO item.
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,no-value-for-parameter
     def __init__(self, role, filename, local_facts,
                  additive_facts_to_overwrite=None,
                  openshift_env=None,
@@ -1579,7 +1592,15 @@ class OpenShiftFacts(object):
                 "Role %s is not supported by this module" % role
             )
         self.role = role
-        self.system_facts = ansible_facts(module)
+
+        try:
+            # ansible-2.1
+            # pylint: disable=too-many-function-args
+            self.system_facts = ansible_facts(module, ['hardware', 'network', 'virtual', 'facter'])
+        except TypeError:
+            # ansible-1.9.x,ansible-2.0.x
+            self.system_facts = ansible_facts(module)
+
         self.facts = self.generate_facts(local_facts,
                                          additive_facts_to_overwrite,
                                          openshift_env,
@@ -1727,6 +1748,7 @@ class OpenShiftFacts(object):
             if version_info is not None:
                 docker['api_version'] = version_info['api_version']
                 docker['version'] = version_info['version']
+                docker['gte_1_10'] = LooseVersion(version_info['version']) >= LooseVersion('1.10')
             defaults['docker'] = docker
 
         if 'clock' in roles:
@@ -1747,7 +1769,7 @@ class OpenShiftFacts(object):
                 metrics=dict(
                     deploy=False,
                     duration=7,
-                    resolution=10,
+                    resolution='10s',
                     storage=dict(
                         kind=None,
                         volume=dict(
